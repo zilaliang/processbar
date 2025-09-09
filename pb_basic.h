@@ -10,6 +10,7 @@
 #include <QTimer>
 #include <QPropertyAnimation>
 #include <QLinearGradient>
+#include <thread>
 
 class pb_basic : public QProgressBar
 {
@@ -29,19 +30,32 @@ public:
     // 设置值，并确保在有效范围内
     void set_value_(int num) {
         num = qBound(0, num, 100); // 确保值在0-100之间
-        setValue(num); // 使用QProgressBar自身的setValue方法
+        num = qBound(0, num, 100);
+        int current = value();
+
+        QTimer *timer = new QTimer(this);
+        connect(timer, &QTimer::timeout, [=]() mutable {
+            if (current < num) {
+                current++;
+                setValue(current);
+            } else {
+                timer->stop();
+                timer->deleteLater();
+            }
+        });
+        timer->start(speed_); // 每80毫秒更新一次
+
+        // setValue(num); // 使用QProgressBar自身的setValue方法
     }
 
     // 设置速度，并确保在有效范围内
     void set_speed_(double num) {
         num = qBound(0.0, num, 100.0); // 确保速度在0.0-100.0之间
-        // 速度可能需要关联动画时长，这里只是一个示例，具体逻辑根据需求实现
-        // 例如，可以控制进度条增长的速度
         speed_ = num;
     }
 
 private:
-    double speed_ = 1.0; // 示例成员，表示进度变化的速度因子
+    double speed_ = 80.0; // 默认位80ms更新一次
 };
 
 class pb_circle : public pb_basic
